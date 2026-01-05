@@ -1,6 +1,6 @@
 {
-  "name": "@bedev.io/nextjs-crons",
-  "version": "1.0.5",
+  "name": "nextjs-crons",
+  "version": "1.0.6",
   "description": "A lightweight CLI and library to run Next.js Vercel cron jobs locally",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

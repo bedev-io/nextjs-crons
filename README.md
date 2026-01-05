@@ -15,10 +15,10 @@ A lightweight CLI and library to run Next.js Vercel cron jobs locally or in any 
 ## Installation
 
 ```bash
-# As a dev dependency in your Next.js project (used with "npx @bedev.io/nextjs-crons" as a CLI tool)
+# As a dev dependency in your Next.js project
 npm install --save-dev @bedev.io/nextjs-crons
 
-# Or globally (recommended for using nextjs-crons as a CLI tool)
+# Or globally (recommended)
 npm install -g @bedev.io/nextjs-crons
 ```
 
