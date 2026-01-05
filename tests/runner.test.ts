@@ -1,73 +1,78 @@
-import { CronRunner } from '../src/runner';
-import * as fs from 'fs';
-import * as path from 'path';
+import { CronRunner } from "../src/runner";
 
 // Mock node-cron
-jest.mock('node-cron', () => ({
+jest.mock("node-cron", () => ({
   schedule: jest.fn((schedule, callback) => ({
     stop: jest.fn(),
   })),
   validate: jest.fn((schedule) => {
     // Basic validation - check if it's a valid cron expression format
-    const parts = schedule.split(' ');
+    const parts = schedule.split(" ");
     return parts.length === 5;
   }),
 }));
 
-const mockCron = require('node-cron');
+// Mock fs module
+jest.mock("fs", () => ({
+  existsSync: jest.fn(),
+  readFileSync: jest.fn(),
+}));
 
-describe('CronRunner', () => {
-  const mockBaseUrl = 'http://localhost:3000';
-  const mockConfigPath = '/tmp/test-vercel.json';
+const mockCron = require("node-cron");
+const fs = require("fs");
+
+describe("CronRunner", () => {
+  const mockBaseUrl = "http://localhost:3000";
+  const mockConfigPath = "/tmp/test-vercel.json";
   const mockConfig = {
     crons: [
-      { path: '/api/crons/test1', schedule: '* * * * *' },
-      { path: '/api/crons/test2', schedule: '0 8 * * *' },
-      { path: '/api/crons/notifications/test3', schedule: '*/5 * * * *' },
+      { path: "/api/crons/test1", schedule: "* * * * *" },
+      { path: "/api/crons/test2", schedule: "0 8 * * *" },
+      { path: "/api/crons/notifications/test3", schedule: "*/5 * * * *" },
     ],
   };
 
   beforeEach(() => {
     jest.clearAllMocks();
-    
-    // Mock fs.existsSync
-    jest.spyOn(fs, 'existsSync').mockReturnValue(true);
-    
-    // Mock fs.readFileSync
-    jest.spyOn(fs, 'readFileSync').mockReturnValue(JSON.stringify(mockConfig));
+
+    // Reset fs mocks to default values
+    fs.existsSync.mockReturnValue(true);
+    fs.readFileSync.mockReturnValue(JSON.stringify(mockConfig));
+
+    // Reset node-cron validate mock to default implementation
+    mockCron.validate.mockImplementation((schedule: string) => {
+      const parts = schedule.split(" ");
+      return parts.length === 5;
+    });
   });
 
-  afterEach(() => {
-    jest.restoreAllMocks();
-  });
-
-  describe('constructor', () => {
-    it('should create instance with valid options', () => {
+  describe("constructor", () => {
+    it("should create instance with valid options", () => {
       const runner = new CronRunner({
         baseUrl: mockBaseUrl,
-        cronSecret: 'test-secret',
+        cronSecret: "test-secret",
       });
 
       expect(runner).toBeInstanceOf(CronRunner);
     });
 
-    it('should throw error if baseUrl is missing', () => {
+    it("should throw error if baseUrl is missing", () => {
       expect(() => {
         new CronRunner({
-          baseUrl: '',
+          baseUrl: "",
         });
-      }).toThrow('baseUrl is required');
+      }).toThrow("baseUrl is required");
     });
 
-    it('should throw error if baseUrl is invalid', () => {
+    it("should throw error if baseUrl is invalid", () => {
       expect(() => {
         new CronRunner({
-          baseUrl: 'invalid-url',
+          baseUrl: "invalid-url",
         });
-      }).toThrow('baseUrl must be a valid URL');
+      }).toThrow("baseUrl must be a valid URL");
     });
 
-    it('should use default configPath if not provided', () => {
+    it("should use default configPath if not provided", () => {
       const runner = new CronRunner({
         baseUrl: mockBaseUrl,
       });
@@ -75,43 +80,43 @@ describe('CronRunner', () => {
       expect(runner).toBeInstanceOf(CronRunner);
     });
 
-    it('should use CRON_SECRET from environment if not provided', () => {
-      process.env.CRON_SECRET = 'env-secret';
-      
+    it("should use CRON_SECRET from environment if not provided", () => {
+      process.env.CRON_SECRET = "env-secret";
+
       const runner = new CronRunner({
         baseUrl: mockBaseUrl,
       });
 
       expect(runner).toBeInstanceOf(CronRunner);
-      
+
       delete process.env.CRON_SECRET;
     });
   });
 
-  describe('loadConfig', () => {
-    it('should throw error if config file does not exist', async () => {
-      jest.spyOn(fs, 'existsSync').mockReturnValue(false);
+  describe("loadConfig", () => {
+    it("should throw error if config file does not exist", async () => {
+      fs.existsSync.mockReturnValue(false);
 
       const runner = new CronRunner({
         baseUrl: mockBaseUrl,
-        configPath: '/non-existent/vercel.json',
+        configPath: "/non-existent/vercel.json",
       });
 
-      await expect(runner.start()).rejects.toThrow('Config file not found');
+      await expect(runner.start()).rejects.toThrow("Config file not found");
     });
 
-    it('should throw error if config is invalid JSON', async () => {
-      jest.spyOn(fs, 'readFileSync').mockReturnValue('invalid json');
+    it("should throw error if config is invalid JSON", async () => {
+      fs.readFileSync.mockReturnValue("invalid json");
 
       const runner = new CronRunner({
         baseUrl: mockBaseUrl,
       });
 
-      await expect(runner.start()).rejects.toThrow('Invalid JSON');
+      await expect(runner.start()).rejects.toThrow("Invalid JSON");
     });
 
-    it('should throw error if config does not have crons array', async () => {
-      jest.spyOn(fs, 'readFileSync').mockReturnValue(JSON.stringify({ other: 'data' }));
+    it("should throw error if config does not have crons array", async () => {
+      fs.readFileSync.mockReturnValue(JSON.stringify({ other: "data" }));
 
       const runner = new CronRunner({
         baseUrl: mockBaseUrl,
@@ -121,11 +126,11 @@ describe('CronRunner', () => {
     });
   });
 
-  describe('start', () => {
-    it('should start all cron jobs', async () => {
+  describe("start", () => {
+    it("should start all cron jobs", async () => {
       const runner = new CronRunner({
         baseUrl: mockBaseUrl,
-        cronSecret: 'test-secret',
+        cronSecret: "test-secret",
       });
 
       await runner.start();
@@ -134,10 +139,10 @@ describe('CronRunner', () => {
       expect(mockCron.validate).toHaveBeenCalledTimes(3);
     });
 
-    it('should filter jobs based on filter pattern', async () => {
+    it("should filter jobs based on filter pattern", async () => {
       const runner = new CronRunner({
         baseUrl: mockBaseUrl,
-        filter: '/api/crons/notifications/*',
+        filter: "/api/crons/notifications/*",
       });
 
       await runner.start();
@@ -145,28 +150,30 @@ describe('CronRunner', () => {
       expect(mockCron.schedule).toHaveBeenCalledTimes(1);
     });
 
-    it('should throw error if no jobs match filter', async () => {
+    it("should throw error if no jobs match filter", async () => {
       const runner = new CronRunner({
         baseUrl: mockBaseUrl,
-        filter: '/api/crons/non-existent/*',
+        filter: "/api/crons/non-existent/*",
       });
 
-      await expect(runner.start()).rejects.toThrow('No cron jobs found matching the filter');
+      await expect(runner.start()).rejects.toThrow(
+        "No cron jobs found matching the filter"
+      );
     });
 
-    it('should throw error for invalid cron schedule', async () => {
+    it("should throw error for invalid cron schedule", async () => {
       mockCron.validate.mockReturnValue(false);
 
       const runner = new CronRunner({
         baseUrl: mockBaseUrl,
       });
 
-      await expect(runner.start()).rejects.toThrow('Invalid cron schedule');
+      await expect(runner.start()).rejects.toThrow("Invalid cron schedule");
     });
   });
 
-  describe('stop', () => {
-    it('should stop all cron jobs', async () => {
+  describe("stop", () => {
+    it("should stop all cron jobs", async () => {
       const mockStop = jest.fn();
       mockCron.schedule.mockReturnValue({ stop: mockStop });
 
@@ -181,8 +188,8 @@ describe('CronRunner', () => {
     });
   });
 
-  describe('executeAll', () => {
-    it('should execute all cron jobs once', async () => {
+  describe("executeAll", () => {
+    it("should execute all cron jobs once", async () => {
       const mockFetch = jest.fn().mockResolvedValue({
         ok: true,
         status: 200,
@@ -190,7 +197,7 @@ describe('CronRunner', () => {
 
       const runner = new CronRunner({
         baseUrl: mockBaseUrl,
-        cronSecret: 'test-secret',
+        cronSecret: "test-secret",
         fetch: mockFetch as any,
       });
 
@@ -198,19 +205,19 @@ describe('CronRunner', () => {
 
       expect(results).toHaveLength(3);
       expect(mockFetch).toHaveBeenCalledTimes(3);
-      
+
       // Check that Authorization header is set
       expect(mockFetch).toHaveBeenCalledWith(
         expect.any(String),
         expect.objectContaining({
           headers: expect.objectContaining({
-            'Authorization': 'Bearer test-secret',
+            Authorization: "Bearer test-secret",
           }),
         })
       );
     });
 
-    it('should execute filtered cron jobs', async () => {
+    it("should execute filtered cron jobs", async () => {
       const mockFetch = jest.fn().mockResolvedValue({
         ok: true,
         status: 200,
@@ -218,7 +225,7 @@ describe('CronRunner', () => {
 
       const runner = new CronRunner({
         baseUrl: mockBaseUrl,
-        filter: '/api/crons/notifications/*',
+        filter: "/api/crons/notifications/*",
         fetch: mockFetch as any,
       });
 
@@ -227,12 +234,12 @@ describe('CronRunner', () => {
       expect(results).toHaveLength(1);
       expect(mockFetch).toHaveBeenCalledTimes(1);
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:3000/api/crons/notifications/test3',
+        "http://localhost:3000/api/crons/notifications/test3",
         expect.any(Object)
       );
     });
 
-    it('should handle failed requests', async () => {
+    it("should handle failed requests", async () => {
       const mockFetch = jest.fn().mockResolvedValue({
         ok: false,
         status: 500,
@@ -246,12 +253,12 @@ describe('CronRunner', () => {
       const results = await runner.executeAll();
 
       expect(results).toHaveLength(3);
-      expect(results.every(r => !r.success)).toBe(true);
-      expect(results.every(r => r.statusCode === 500)).toBe(true);
+      expect(results.every((r) => !r.success)).toBe(true);
+      expect(results.every((r) => r.statusCode === 500)).toBe(true);
     });
 
-    it('should handle network errors', async () => {
-      const mockFetch = jest.fn().mockRejectedValue(new Error('Network error'));
+    it("should handle network errors", async () => {
+      const mockFetch = jest.fn().mockRejectedValue(new Error("Network error"));
 
       const runner = new CronRunner({
         baseUrl: mockBaseUrl,
@@ -261,11 +268,11 @@ describe('CronRunner', () => {
       const results = await runner.executeAll();
 
       expect(results).toHaveLength(3);
-      expect(results.every(r => !r.success)).toBe(true);
-      expect(results.every(r => r.error === 'Network error')).toBe(true);
+      expect(results.every((r) => !r.success)).toBe(true);
+      expect(results.every((r) => r.error === "Network error")).toBe(true);
     });
 
-    it('should not include Authorization header if cronSecret is not provided', async () => {
+    it("should not include Authorization header if cronSecret is not provided", async () => {
       const mockFetch = jest.fn().mockResolvedValue({
         ok: true,
         status: 200,
@@ -282,15 +289,15 @@ describe('CronRunner', () => {
         expect.any(String),
         expect.objectContaining({
           headers: expect.not.objectContaining({
-            'Authorization': expect.any(String),
+            Authorization: expect.any(String),
           }),
         })
       );
     });
   });
 
-  describe('executeOne', () => {
-    it('should execute a specific cron job', async () => {
+  describe("executeOne", () => {
+    it("should execute a specific cron job", async () => {
       const mockFetch = jest.fn().mockResolvedValue({
         ok: true,
         status: 200,
@@ -301,26 +308,26 @@ describe('CronRunner', () => {
         fetch: mockFetch as any,
       });
 
-      const result = await runner.executeOne('/api/crons/test1');
+      const result = await runner.executeOne("/api/crons/test1");
 
       expect(result.success).toBe(true);
-      expect(result.path).toBe('/api/crons/test1');
+      expect(result.path).toBe("/api/crons/test1");
       expect(mockFetch).toHaveBeenCalledTimes(1);
     });
 
-    it('should throw error if cron job not found', async () => {
+    it("should throw error if cron job not found", async () => {
       const runner = new CronRunner({
         baseUrl: mockBaseUrl,
       });
 
-      await expect(runner.executeOne('/api/crons/non-existent')).rejects.toThrow(
-        'Cron job not found'
-      );
+      await expect(
+        runner.executeOne("/api/crons/non-existent")
+      ).rejects.toThrow("Cron job not found");
     });
   });
 
-  describe('getStats', () => {
-    it('should return initial stats', () => {
+  describe("getStats", () => {
+    it("should return initial stats", () => {
       const runner = new CronRunner({
         baseUrl: mockBaseUrl,
       });
@@ -334,8 +341,9 @@ describe('CronRunner', () => {
       });
     });
 
-    it('should update stats after execution', async () => {
-      const mockFetch = jest.fn()
+    it("should update stats after execution", async () => {
+      const mockFetch = jest
+        .fn()
         .mockResolvedValueOnce({ ok: true, status: 200 })
         .mockResolvedValueOnce({ ok: false, status: 500 })
         .mockResolvedValueOnce({ ok: true, status: 200 });
@@ -355,8 +363,8 @@ describe('CronRunner', () => {
     });
   });
 
-  describe('listJobs', () => {
-    it('should list all configured jobs', () => {
+  describe("listJobs", () => {
+    it("should list all configured jobs", () => {
       const runner = new CronRunner({
         baseUrl: mockBaseUrl,
       });
@@ -364,77 +372,80 @@ describe('CronRunner', () => {
       const jobs = runner.listJobs();
 
       expect(jobs).toHaveLength(3);
-      expect(jobs[0]).toEqual({ path: '/api/crons/test1', schedule: '* * * * *' });
+      expect(jobs[0]).toEqual({
+        path: "/api/crons/test1",
+        schedule: "* * * * *",
+      });
     });
 
-    it('should list filtered jobs', () => {
+    it("should list filtered jobs", () => {
       const runner = new CronRunner({
         baseUrl: mockBaseUrl,
-        filter: '/api/crons/notifications/*',
+        filter: "/api/crons/notifications/*",
       });
 
       const jobs = runner.listJobs();
 
       expect(jobs).toHaveLength(1);
-      expect(jobs[0].path).toBe('/api/crons/notifications/test3');
+      expect(jobs[0].path).toBe("/api/crons/notifications/test3");
     });
   });
 
-  describe('verbose logging', () => {
-    it('should log when verbose is enabled', async () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+  describe("verbose logging", () => {
+    it("should log when verbose is enabled", async () => {
+      const consoleSpy = jest.spyOn(console, "log").mockImplementation();
       const mockFetch = jest.fn().mockResolvedValue({ ok: true, status: 200 });
 
       const runner = new CronRunner({
         baseUrl: mockBaseUrl,
-        verbose: true,
+        verbose: 1,
         fetch: mockFetch as any,
       });
 
       await runner.executeAll();
 
       expect(consoleSpy).toHaveBeenCalled();
-      
+
       consoleSpy.mockRestore();
     });
 
-    it('should not log when verbose is disabled', async () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+    it("should not log when verbose is disabled", async () => {
+      const consoleSpy = jest.spyOn(console, "log").mockImplementation();
       const mockFetch = jest.fn().mockResolvedValue({ ok: true, status: 200 });
 
       const runner = new CronRunner({
         baseUrl: mockBaseUrl,
-        verbose: false,
+        verbose: 0,
         fetch: mockFetch as any,
       });
 
       await runner.executeAll();
 
       expect(consoleSpy).not.toHaveBeenCalled();
-      
+
       consoleSpy.mockRestore();
     });
 
-    it('should always log errors', async () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+    it("should always log errors", async () => {
+      const consoleErrorSpy = jest.spyOn(console, "error").mockImplementation();
       const mockFetch = jest.fn().mockResolvedValue({ ok: false, status: 500 });
 
       const runner = new CronRunner({
         baseUrl: mockBaseUrl,
-        verbose: false,
+        verbose: 0,
         fetch: mockFetch as any,
       });
 
       await runner.executeAll();
 
       expect(consoleErrorSpy).toHaveBeenCalled();
-      
+
       consoleErrorSpy.mockRestore();
     });
   });
 
-  describe('execution results', () => {
-    it('should include duration in results', async () => {
+  describe("execution results", () => {
+    it("should include duration in results", async () => {
       const mockFetch = jest.fn().mockResolvedValue({ ok: true, status: 200 });
 
       const runner = new CronRunner({
@@ -445,10 +456,10 @@ describe('CronRunner', () => {
       const results = await runner.executeAll();
 
       expect(results[0].duration).toBeGreaterThanOrEqual(0);
-      expect(typeof results[0].duration).toBe('number');
+      expect(typeof results[0].duration).toBe("number");
     });
 
-    it('should include timestamp in results', async () => {
+    it("should include timestamp in results", async () => {
       const mockFetch = jest.fn().mockResolvedValue({ ok: true, status: 200 });
 
       const runner = new CronRunner({
@@ -461,7 +472,7 @@ describe('CronRunner', () => {
       expect(results[0].timestamp).toBeInstanceOf(Date);
     });
 
-    it('should include schedule in results', async () => {
+    it("should include schedule in results", async () => {
       const mockFetch = jest.fn().mockResolvedValue({ ok: true, status: 200 });
 
       const runner = new CronRunner({
@@ -471,7 +482,7 @@ describe('CronRunner', () => {
 
       const results = await runner.executeAll();
 
-      expect(results[0].schedule).toBe('* * * * *');
+      expect(results[0].schedule).toBe("* * * * *");
     });
   });
 });

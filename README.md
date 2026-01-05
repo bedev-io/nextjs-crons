@@ -40,7 +40,7 @@ npx nextjs-crons --url http://localhost:3000 --secret your-cron-secret
 npx nextjs-crons --url http://localhost:3000 --filter "/api/crons/notifications/*"
 
 # Execute a specific cron once
-npx nextjs-crons --url http://localhost:3000 --execute "/api/crons/update-exchange-rates"
+npx nextjs-crons --url http://localhost:3000 --execute "/api/crons/notify-happy-birthday"
 
 # List all configured crons
 npx nextjs-crons --list
@@ -71,7 +71,7 @@ const results = await runner.executeAll();
 console.log(results);
 
 // Execute a specific cron
-const result = await runner.executeOne("/api/crons/update-exchange-rates");
+const result = await runner.executeOne("/api/crons/notify-happy-birthday");
 console.log(result);
 
 // Get statistics
