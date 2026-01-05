@@ -15,11 +15,11 @@ A lightweight CLI and library to run Next.js Vercel cron jobs locally or in any 
 ## Installation
 
 ```bash
-# As a dev dependency in your Next.js project
-npm install --save-dev nextjs-crons
+# As a dev dependency in your Next.js project (used with "npx @bedev.io/nextjs-crons" as a CLI tool)
+npm install --save-dev @bedev.io/nextjs-crons
 
-# Or globally
-npm install -g nextjs-crons
+# Or globally (recommended for using nextjs-crons as a CLI tool)
+npm install -g @bedev.io/nextjs-crons
 ```
 
 ## Usage
@@ -28,25 +28,28 @@ npm install -g nextjs-crons
 
 ```bash
 # Start all crons in watch mode
-npx nextjs-crons --url http://localhost:3000
+nextjs-crons --url http://localhost:3000
 
 # Execute all crons once
-npx nextjs-crons --url http://localhost:3000 --once
+nextjs-crons --url http://localhost:3000 --once
 
 # With authentication
-npx nextjs-crons --url http://localhost:3000 --secret your-cron-secret
+nextjs-crons --url http://localhost:3000 --secret your-cron-secret
 
 # Filter specific crons
-npx nextjs-crons --url http://localhost:3000 --filter "/api/crons/notifications/*"
+nextjs-crons --url http://localhost:3000 --filter "/api/crons/notifications/*"
 
 # Execute a specific cron once
-npx nextjs-crons --url http://localhost:3000 --execute "/api/crons/notify-happy-birthday"
+nextjs-crons --url http://localhost:3000 --execute "/api/crons/notify-happy-birthday"
 
 # List all configured crons
-npx nextjs-crons --list
+nextjs-crons --list
 
-# Verbose logging
-npx nextjs-crons --url http://localhost:3000 --verbose
+# Verbose logging (simple)
+nextjs-crons --url http://localhost:3000 --verbose
+
+# Verbose logging (extended)
+nextjs-crons --url http://localhost:3000 -vv
 ```
 
 ### Programmatic Usage
