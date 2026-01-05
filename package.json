@@ -1,0 +1,46 @@
+{
+  "name": "@bedev/nextjs-crons",
+  "version": "1.0.0",
+  "description": "A lightweight CLI and library to run Next.js Vercel cron jobs locally",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "nextjs-crons": "dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "prepublishOnly": "npm run build",
+    "cli": "node dist/cli.js",
+    "cli:dev": "ts-node src/cli.ts",
+    "link": "npm link",
+    "unlink": "npm unlink -g"
+  },
+  "keywords": [
+    "nextjs",
+    "vercel",
+    "cron",
+    "scheduler",
+    "cli"
+  ],
+  "author": "Quentin Mousset (www.bedev.io)",
+  "license": "MIT",
+  "dependencies": {
+    "node-cron": "^3.0.3"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.11",
+    "@types/node": "^20.10.6",
+    "@types/node-cron": "^3.0.11",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.1",
+    "typescript": "^5.3.3"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ]
+}

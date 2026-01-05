@@ -1,0 +1,57 @@
+# Example docker-compose.yml for running Next.js app with cron runner
+
+version: "3.8"
+
+services:
+  # Your Next.js application
+  nextjs-app:
+    build:
+      context: .
+      dockerfile: Dockerfile.nextjs
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - CRON_SECRET=${CRON_SECRET}
+      - DATABASE_URL=${DATABASE_URL}
+    networks:
+      - app-network
+
+  # Cron runner service
+  cron-runner:
+    image: node:20-alpine
+    working_dir: /app
+    volumes:
+      - ./vercel.json:/app/vercel.json:ro
+    environment:
+      - BASE_URL=http://nextjs-app:3000
+      - CRON_SECRET=${CRON_SECRET}
+    networks:
+      - app-network
+    command: >
+      sh -c "npm install -g nextjs-crons &&
+             nextjs-crons --url $$BASE_URL --secret $$CRON_SECRET --verbose"
+    depends_on:
+      - nextjs-app
+    restart: unless-stopped
+
+  # Optional: Database
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_USER=myuser
+      - POSTGRES_PASSWORD=mypassword
+      - POSTGRES_DB=mydb
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - app-network
+    ports:
+      - "5432:5432"
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  postgres-data:

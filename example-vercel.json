@@ -1,0 +1,12 @@
+{
+  "crons": [
+    {
+      "path": "/api/crons/notifications/notify-happy-birthday",
+      "schedule": "0 8 * * *"
+    },
+    {
+      "path": "/api/crons/hello-world",
+      "schedule": "* * * * *"
+    }
+  ]
+}
